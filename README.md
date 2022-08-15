@@ -9,7 +9,7 @@ Four types of transaction, such as normal transaction and three types of cyber-a
 * The labeled cyber-attack transactions: labled_transaction_data.csv.
 * Feature data: feature_data_of_transactions.csv.
 
-All of these data is available for download throught network disk. URL: https://pan.baidu.com/s/1ZxjtUaYfGOGJEvzy56wS3w password: xd5w
+All of these data are available for download throught network disk. URL: https://pan.baidu.com/s/1ZxjtUaYfGOGJEvzy56wS3w password: xd5w
 
 The codes of comparative experiment are stored in code folder. The file named feature_process.py is the execution file corresponding to procedure of feature generation and three sigma process. The weighted_extended_isolation_forest.py is the main code of our proposed algorithm mentioned in section 3. The files of unsupervised machine learning methods applied in section 4 are weif_train_and_predict.py (The execution code of our proposed algorithm), if_and_eif_train_and_predict.py (The code of two comparative models including isolation forest and extended isolation foreset), and comparative_experiment_of_unspupervised_learning.py ( 9 techniques of comparative models are applied in this file including CBLOF, HBOS, FB, KNN, Average KNN, LOF, OCSVM, DeepSVDD, VAE). The file of supervised machine learning methods applied in section 4 is comparative_experiment_of_supervised_learning.py, among which RF, XGBoost, LGBM are applied for the comparision. For all of the methods executed in section 4, the labeled_transaction_data.csv and feature_data_of_transactions.csv are required to load before execution. In addition, the files of graph convolutional network are also presented in folder of scripts.
 
