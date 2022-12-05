@@ -5,19 +5,20 @@ from sklearn import preprocessing
 import time
 from eif import iForest
 
-def data_load(train_data_path,attack_data_path):
+def data_load(feature_data_path,train_data_path,test_data_path):
     """
-    para train_data_path: feature data of histroical transaction
-    para attack_data_path: labeled transactions of historical cyber-attacks
-    para attack_type: type of cyber-attack
+    para feature_data_path: feature data of histroical transaction
+    para train_data_path: labeled transactions of historical cyber-attacks for train
+    para test_data_path: labeled transactions of historical cyber-attacks for test
     return (feature_data,target_data)
     """
-    feature_data = pd.read_csv(train_data_path,encoding='utf8',index_col=0).fillna(0)
+    feature_data = pd.read_csv(feature_data_path,encoding='utf8',index_col=0).fillna(0)
     feature_data['compromised_address'] = [eval(x)[0] for x in feature_data.index]
     feature_data['target_block_number'] = [eval(x)[1] for x in feature_data.index]
-    target_data = pd.read_csv(attack_data_path,encoding='utf8')
-    
-    return (feature_data,target_data)
+    # target_data = pd.read_csv(attack_data_path,encoding='utf8')
+    train_data = pd.read_csv(train_data_path,encoding='utf8',index_col=0)
+    test_data = pd.read_csv(test_data_path,encoding='utf8',index_col=0)
+    return (feature_data,train_data,test_data)
 
 def experiment_execution(feature_data,target_data,transaction_limit,contamination,sigma=False):
     """
@@ -97,8 +98,9 @@ def metric(predict_result,attack_type):
         recall = sum(attack_result[attack_result['type']==attack_type][x])/sum(attack_result[attack_result['type']==attack_type]['label'])
         f_score = 2*precision*recall/(precision+recall)
         print(x,"precision: ",precision,"recall: ",recall,"f_score: ",f_score)
+        print(precision,recall,f_score)
 
-#    return(precision,recall,f_score)
+    return([precision,recall,f_score])
 
 if __name__ == "__main__":
     original_feature = ['gas_fee', 'value', 'action', 'spend_value', 'receive_value','internal_sum', 
@@ -114,12 +116,20 @@ if __name__ == "__main__":
                         'eth_spend_abnormal_index','eth_receive_abnormal_index',
                         'token_spend_abnormal_index','token_receive_abnormal_index']
     discrete_feature = ['action', 'token_index', 'internal_index', 'contract_index','internal_token_index']
-    train_data_path = "data/feature_data_of_transactions.csv"
-    attack_data_path = "data/labeled_transaction_data.csv"
+    feature_data_path = "data/feature_data_of_transactions.csv"
+    train_data_path = "data/train_data.csv"
+    test_data_path = "data/test_data.csv"
+    # attack_data_path = "data/labeled_transaction_data.csv"
     transaction_limit = 2000
     contamination = 0.05
-    feature_data,target_data = data_load(train_data_path,attack_data_path)
-    predict_result,time_cost = experiment_execution(feature_data,target_data,transaction_limit,contamination,sigma=False)
-    metric(predict_result,'smart contract exploit')
-    metric(predict_result,'flash loan attack')
-    metric(predict_result,'authority theft')
+    feature_data,train_data,test_data = data_load(feature_data_path,train_data_path,test_data_path)
+    train_predict_result,time_cost = experiment_execution(feature_data,train_data,transaction_limit,contamination,sigma=False)
+    test_predict_result,time_cost = experiment_execution(feature_data,train_data,transaction_limit,contamination,sigma=False)    
+    metric(train_predict_result,'smart contract exploit')
+    metric(test_predict_result,'smart contract exploit')
+    
+    metric(train_predict_result,'flash loan attack')
+    metric(test_predict_result,'flash loan attack')
+    
+    metric(train_predict_result,'authority theft')
+    metric(test_predict_result,'authority theft')
