@@ -16,14 +16,15 @@ def xgb_train(X_train, X_test, y_train, y_test):
     para: y_test
     return: xgb_predict
     """
-    param = {'max_depth':2, 'eta':1, 'objective':'binary:logistic' }
+    param = {'max_depth':5, 'eta':1, 'objective':'binary:logistic' }
     num_round = 2
     xgb_model = xgb.train(param, xgb.DMatrix(X_train,y_train), num_round)
     # make prediction
     xgb_predict = xgb_model.predict(xgb.DMatrix(X_test))
     xgb_predict = [1 if x>=0.5 else 0 for x in xgb_predict]
-    
-    return xgb_predict
+    train_xgb_predict = xgb_model.predict(xgb.DMatrix(X_train))
+    train_xgb_predict = [1 if x>=0.5 else 0 for x in train_xgb_predict]  
+    return train_xgb_predict,xgb_predict
 
 def random_forset_train(X_train, X_test, y_train, y_test):
     """
@@ -38,8 +39,9 @@ def random_forset_train(X_train, X_test, y_train, y_test):
     rf_model.fit(X_train,y_train)
     rf_predict = rf_model.predict(X_test)
     rf_predict = [1 if x>=0.5 else 0 for x in rf_predict]
-    
-    return rf_predict
+    train_rf_predict = rf_model.predict(X_train)
+    train_rf_predict = [1 if x>=0.5 else 0 for x in train_rf_predict]    
+    return train_rf_predict,rf_predict
 
 def lgbm_train(X_train, X_test, y_train, y_test):
     """
@@ -56,15 +58,16 @@ def lgbm_train(X_train, X_test, y_train, y_test):
         'learning_rate': 0.1,
         'lambda_l1': 0.1,
         'lambda_l2': 0.2,
-        'max_depth': 4,
+        'max_depth': 5,
         'objective': 'binary',  # objective function
         'num_class': 1,
     }
     lgbm = lgb.train(params, train_data, valid_sets=[validation_data])
     lgbm_pred = lgbm.predict(X_test)
     lgbm_pred = [1 if x>=0.5 else 0 for x in list(lgbm_pred)]
-
-    return lgbm_pred
+    train_lgbm_pred = lgbm.predict(X_train)
+    train_lgbm_pred = [1 if x>=0.5 else 0 for x in train_lgbm_pred]  
+    return train_lgbm_pred,lgbm_pred
 
 def metric(y_true,y_predict):
     """
@@ -78,6 +81,7 @@ def metric(y_true,y_predict):
     recall = matrix[1][1] / (matrix[1][0] + matrix[1][1])
     f1score = 2*precision*recall/(precision+recall)
     print("precision:",precision," recall:",recall," f1score: ",f1score)
+    print(precision,recall,f1score)
     return (precision,recall,f1score)
 
 def data_load(attack_type,feature_data_path,labeled_data_path):
@@ -92,11 +96,12 @@ def data_load(attack_type,feature_data_path,labeled_data_path):
     feature_data['compromised_address'] = [eval(x)[0] for x in feature_data.index]
     feature_data['target_block_number'] = [eval(x)[1] for x in feature_data.index]
     target_data = pd.read_csv(labeled_data_path,encoding='utf8')
+    # attack_type = 'flash loan attack'
     temp_target_data = target_data[(target_data['type']==attack_type)].reset_index(drop=True) 
     temp_feature_data = feature_data[feature_data.index.isin(list(temp_target_data['index']))][original_feature].drop_duplicates()
     X = temp_feature_data.drop(['hash'],axis=1)
     Y = pd.DataFrame([1 if x in set(temp_target_data['hash']) else 0 for x in temp_feature_data['hash']])
-    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3)
     return X_train, X_test, y_train, y_test
 
 if __name__ == "__main__":
@@ -114,17 +119,20 @@ if __name__ == "__main__":
     feature_data_path = 'data/feature_data_of_transactions.csv'
     labeled_data_path = 'data/labeled_transaction_data.csv'
     
-    X_train, X_test, y_train, y_test = data_load('flash loan attack',feature_data_path,labeled_data_path)
+    X_train, X_test, y_train, y_test = data_load('authority theft',feature_data_path,labeled_data_path)
     
     #XGBoost
-    xgb_predict = xgb_train(X_train, X_test, y_train, y_test)
+    train_xgb_predict,xgb_predict = xgb_train(X_train, X_test, y_train, y_test)
+    metric(list(y_train[0]),train_xgb_predict)
     precision,recall,f1score = metric(list(y_test[0]),xgb_predict)
     
     #Random forest
-    rf_predict = random_forset_train(X_train, X_test, y_train, y_test)
+    train_rf_predict,rf_predict = random_forset_train(X_train, X_test, y_train, y_test)
+    metric(list(y_train[0]),train_rf_predict)
     precision,recall,f1score = metric(list(y_test[0]),rf_predict)
     
     #LightGBM
-    lgbm_predict = lgbm_train(X_train, X_test, y_train, y_test)
+    train_lgbm_predict,lgbm_predict = lgbm_train(X_train, X_test, y_train, y_test)
+    metric(list(y_train[0]),train_lgbm_predict)
     precision,recall,f1score = metric(list(y_test[0]),lgbm_predict)
 
